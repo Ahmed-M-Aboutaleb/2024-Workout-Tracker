@@ -1,0 +1,96 @@
+services:
+  backend-dev:
+    container_name: workout-tracker-API-Dev
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    command: npm run start:dev
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    env_file:
+      - .env.dev
+    networks:
+      - workout-tracker-network
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  backend-prod:
+    container_name: workout-tracker-API
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    command: npm run start:prod
+    env_file:
+      - .env.prod
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    networks:
+      - workout-tracker-network
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  frontend-dev:
+    container_name: workout-tracker-Frontend-Dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    command: yarn dev
+    ports:
+      - ${FRONTEND_PORT}:${FRONTEND_PORT}
+    env_file:
+      - .env.dev
+    depends_on:
+      - backend-dev
+    networks:
+      - workout-tracker-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  frontend-prod:
+    container_name: workout-tracker-Frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    env_file:
+      - .env.prod
+    ports:
+      - ${FRONTEND_PORT}:${FRONTEND_PORT}
+    depends_on:
+      - backend-prod
+    networks:
+      - workout-tracker-network
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    volumes:
+      - ./database:/data/db
+    ports:
+      - 27017:27017
+    networks:
+      - workout-tracker-network
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+
+networks:
+  workout-tracker-network:
+    driver: bridge
